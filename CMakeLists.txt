@@ -1,10 +1,14 @@
 cmake_minimum_required(VERSION 3.20.0)
 
-project(mlir-tutorial LANGUAGES CXX C)
+project(luna LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ standard to conform to")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(BUILD_DEPS ON)
+
+set(LLVM_BUILD_DIR "" CACHE PATH "Path to LLVM build directory")
+set(LLVM_DIR "${LLVM_BUILD_DIR}/lib/cmake/llvm" CACHE PATH "Path to LLVM build directory" FORCE)
+set(MLIR_DIR "${LLVM_BUILD_DIR}/lib/cmake/mlir" CACHE PATH "Path to MLIR build directory" FORCE)
 
 find_package(MLIR REQUIRED CONFIG)
 
