@@ -9,7 +9,7 @@ set (LIBS
     MLIROptLib
     MLIRPass
     # MLIRPoly
-    # MulToAdd
+    MulToAdd
     # NoisyPasses
     # PolyToStandard
     ortools::ortools
