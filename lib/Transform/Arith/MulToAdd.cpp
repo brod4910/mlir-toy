@@ -4,7 +4,7 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
-namespace mlir::luna {
+namespace mlir::toy {
 // Replace y = C*x with y = C/2*x + C/2*x, when C is a power of 2, otherwise do
 // nothing.
 struct PowerOfTwoExpand : public OpRewritePattern<arith::MulIOp> {
@@ -80,4 +80,4 @@ void MulToAddPass::runOnOperation() {
   (void)applyPatternsAndFoldGreedily(getOperation(), std::move(patterns));
 }
 
-} // namespace mlir::luna
+} // namespace mlir::toy

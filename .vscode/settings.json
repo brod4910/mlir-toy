@@ -1,0 +1,22 @@
+{
+    "cmake.preferredGenerators": [
+        "Ninja"
+    ],
+
+    "cmake.additionalCompilerSearchDirs": [
+        "/usr/local/opt/llvm/include/llvm",
+        "/usr/local/opt/llvm/include/mlir",
+        "${workspaceFolder}/include",
+        "${workspaceFolder}/lib",
+    ],
+    "cmake.cmakePath": "/Applications/CMake.app/Contents/bin/cmake",
+    "cmake.configureArgs": [
+        "-DLLVM_BUILD_DIR=/usr/local/opt/llvm",
+        "-DLLVM_EXTERNAL_LIT=/usr/local/Cellar/lit/18.1.1/bin/lit"
+    ],
+    "cmake.copyCompileCommands": "",
+    "files.associations": {
+        "*.inc": "cpp",
+        "__config": "cpp"
+    },
+}

@@ -47,5 +47,4 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/usr/local/opt/llvm/lib/
 
 add_subdirectory(tests)
 add_subdirectory(tools)
-add_subdirectory(include)
 add_subdirectory(lib)

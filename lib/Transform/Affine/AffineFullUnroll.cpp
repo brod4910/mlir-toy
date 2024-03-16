@@ -6,7 +6,7 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
-namespace mlir::luna {
+namespace mlir::toy {
 void AffineFullUnrollPass::runOnOperation() {
   getOperation().walk([&](mlir::affine::AffineForOp op) {
     if (failed(mlir::affine::loopUnrollFull(op))) {
@@ -38,4 +38,4 @@ void AffineFullUnrollPassAsPatternRewrite::runOnOperation() {
   // the pattern application.
   (void)applyPatternsAndFoldGreedily(getOperation(), std::move(patterns));
 }
-} // namespace mlir::luna
+} // namespace mlir::toy

@@ -5,7 +5,7 @@
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Pass/Pass.h"
 
-namespace mlir::luna {
+namespace mlir::toy {
 
 #define GEN_PASS_DEF_AFFINEFULLUNROLLPATTERNREWRITE
 #include "lib/Transform/AffineTD/Passes.h.inc"

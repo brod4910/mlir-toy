@@ -3,7 +3,7 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Pass/Pass.h"
 
-namespace mlir::luna {
+namespace mlir::toy {
 
 class MulToAddPass
     : public PassWrapper<MulToAddPass, OperationPass<mlir::func::FuncOp>> {
@@ -17,4 +17,4 @@ private:
   }
 };
 
-} // namespace mlir::luna
+} // namespace mlir::toy

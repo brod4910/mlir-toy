@@ -9,8 +9,8 @@ int main(int argc, char **argv) {
   mlir::DialectRegistry registry;
   mlir::registerAllDialects(registry);
 
-  mlir::luna::registerAffinePasses();
-  mlir::luna::registerArithPasses();
+  mlir::toy::registerAffinePasses();
+  mlir::toy::registerArithPasses();
 
   return mlir::asMainReturnCode(
       mlir::MlirOptMain(argc, argv, "Tutorial Pass Driver", registry));
