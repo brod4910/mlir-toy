@@ -4,7 +4,7 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Pass/Pass.h"
 
-namespace mlir::luna {
+namespace mlir::toy {
 class AffineFullUnrollPass
     : public PassWrapper<AffineFullUnrollPass, OperationPass<func::FuncOp>> {
 private:
@@ -29,4 +29,4 @@ private:
     return "Fully unroll all affine loops using pattern rewrite engine";
   }
 };
-} // namespace mlir::luna
+} // namespace mlir::toy

@@ -4,7 +4,7 @@
 #include "mlir/Dialect/Affine/LoopUtils.h"
 #include "mlir/Pass/Pass.h"
 
-namespace mlir::luna {
+namespace mlir::toy {
 #define GEN_PASS_DEF_AFFINEFULLUNROLL
 #include "lib/Transform/AffineTD/Passes.h.inc"
 
@@ -24,4 +24,4 @@ struct AffineFullUnroll : impl::AffineFullUnrollBase<AffineFullUnroll> {
     });
   }
 };
-} // namespace mlir::luna
+} // namespace mlir::toy
