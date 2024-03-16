@@ -12,7 +12,6 @@ set (LIBS
     MulToAdd
     # NoisyPasses
     # PolyToStandard
-    ortools::ortools
 )
 
 add_llvm_executable(first-pass first-pass.cpp)

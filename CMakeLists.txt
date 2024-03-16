@@ -6,7 +6,11 @@ set(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ standard to conform to")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(BUILD_DEPS ON)
 
+set(CMAKE_OSX_ARCHITECTURES "x86_64" CACHE INTERNAL "" FORCE)
+set(CMAKE_OSX_DEPLOYMENT_TARGET "14.0" CACHE INTERNAL "" FORCE)
+
 set(LLVM_BUILD_DIR "" CACHE PATH "Path to LLVM build directory")
+message(STATUS "Using LLVM build directory: ${LLVM_BUILD_DIR}")
 set(LLVM_DIR "${LLVM_BUILD_DIR}/lib/cmake/llvm" CACHE PATH "Path to LLVM build directory" FORCE)
 set(MLIR_DIR "${LLVM_BUILD_DIR}/lib/cmake/mlir" CACHE PATH "Path to MLIR build directory" FORCE)
 
@@ -28,16 +32,20 @@ include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${PROJECT_SOURCE_DIR}/externals/llvm-project)
 include_directories(${PROJECT_BINARY_DIR})
 
-message(STATUS "Fetching or-tools...")
-include(FetchContent)
-FetchContent_Declare(
-        or-tools
-        GIT_REPOSITORY https://github.com/google/or-tools.git
-        GIT_TAG        v9.0
-)
-FetchContent_MakeAvailable(or-tools)
-message(STATUS "Done fetching or-tools")
+# LDFLAGS
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/usr/local/opt/llvm/lib/c++ -Wl,-rpath,/usr/local/opt/llvm/lib/c++")
+
+#message(STATUS "Fetching or-tools...")
+#include(FetchContent)
+#FetchContent_Declare(
+#        or-tools
+#        GIT_REPOSITORY https://github.com/google/or-tools.git
+#        GIT_TAG        v9.0
+#)
+#FetchContent_MakeAvailable(or-tools)
+#message(STATUS "Done fetching or-tools")
 
 add_subdirectory(tests)
 add_subdirectory(tools)
+add_subdirectory(include)
 add_subdirectory(lib)

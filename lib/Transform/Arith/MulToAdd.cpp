@@ -51,6 +51,24 @@ struct PeelFromMul : public OpRewritePattern<arith::MulIOp> {
   LogicalResult matchAndRewrite(arith::MulIOp op,
                                 PatternRewriter &rewriter) const override {
 
+    Value lhs = op.getOperand(0);
+    Value rhs = op.getOperand(1);
+
+    auto rhsDefiningOp = rhs.getDefiningOp<arith::ConstantIntOp>();
+
+    if (!rhsDefiningOp) {
+      return failure();
+    }
+
+    int64_t value = rhsDefiningOp.value();
+
+    auto newConstant = rewriter.create<arith::ConstantOp>(rhsDefiningOp.getLoc(), rewriter.getIntegerAttr(rhs.getType(), value - 1));
+    auto newMul = rewriter.create<arith::MulIOp>(op.getLoc(), lhs, newConstant);
+    auto newAdd = rewriter.create<arith::AddIOp>(op.getLoc(), newMul, lhs);
+
+    rewriter.replaceOp(op, newAdd);
+    rewriter.eraseOp(rhsDefiningOp);
+
     return success();
   }
 };
