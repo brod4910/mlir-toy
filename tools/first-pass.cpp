@@ -1,5 +1,5 @@
-#include "lib/Transform/Affine/AffineFullUnroll.h"
-#include "lib/Transform/Arith/MulToAdd.h"
+#include "lib/Transform/AffineTD/Passes.h"
+#include "lib/Transform/ArithTD/Passes.h"
 #include "mlir/InitAllDialects.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassRegistry.h"
@@ -9,9 +9,8 @@ int main(int argc, char **argv) {
   mlir::DialectRegistry registry;
   mlir::registerAllDialects(registry);
 
-  mlir::PassRegistration<mlir::luna::AffineFullUnrollPass>();
-  mlir::PassRegistration<mlir::luna::AffineFullUnrollPassAsPatternRewrite>();
-  mlir::PassRegistration<mlir::luna::MulToAddPass>();
+  mlir::luna::registerAffinePasses();
+  mlir::luna::registerArithPasses();
 
   return mlir::asMainReturnCode(
       mlir::MlirOptMain(argc, argv, "Tutorial Pass Driver", registry));
