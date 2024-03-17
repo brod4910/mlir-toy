@@ -8,15 +8,15 @@ set (LIBS
     # MLIRNoisy
     MLIROptLib
     MLIRPass
-    # MLIRPoly
+    MLIRPoly
     MulToAdd
     # NoisyPasses
     # PolyToStandard
 )
 
-add_llvm_executable(first-pass first-pass.cpp)
+add_llvm_executable(toy toy.cpp)
 
-llvm_update_compile_flags(first-pass)
-target_link_libraries(first-pass PRIVATE ${LIBS})
+llvm_update_compile_flags(toy)
+target_link_libraries(toy PRIVATE ${LIBS})
 
-mlir_check_all_link_libraries(first-pass)
+mlir_check_all_link_libraries(toy)
