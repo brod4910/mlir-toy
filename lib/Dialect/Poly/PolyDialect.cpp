@@ -9,11 +9,11 @@
 #include "lib/Dialect/Poly/PolyTypes.cpp.inc"
 
 namespace mlir::toy::poly {
-    void PolyDialect::initialize() {
+void PolyDialect::initialize() {
   // This is where we will register types and operations with the dialect
-    addTypes<
+  addTypes<
 #define GET_TYPEDEF_LIST
 #include "lib/Dialect/Poly/PolyTypes.cpp.inc"
       >();
 }
-}
+} // namespace mlir::toy::poly
