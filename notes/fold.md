@@ -1,0 +1,2 @@
+# Fold
+Folding can be achieved by adding the `let hasFolder = 1;` in the TD file of an op. The fold operation is "local" by design and can only modify the single operation being folded, use existing SSA values, and may not create new ops. This is different from the `rewrite` operation which can create new ops and modify the entire graph.
