@@ -8,13 +8,18 @@ include "PolyTypes.td"
 include "mlir/IR/BuiltinAttributes.td"
 include "mlir/IR/OpBase.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
+include "mlir/Interfaces/InferTypeOpInterface.td"
 
 def PolyOrContainer : TypeOrContainer<Polynomial, "poly-or-container">;
 
-class Poly_BinOp<string mnemonic> : Op<Poly_Dialect, mnemonic, [Pure, ElementwiseMappable, SameOperandsAndResultElementType]> {
+def Has32BitArguments : NativeOpTrait<"Has32BitArguments"> {
+  let cppNamespace = "::mlir::toy::poly";
+}
+
+class Poly_BinOp<string mnemonic> : Op<Poly_Dialect, mnemonic, [Pure, ElementwiseMappable, SameOperandsAndResultType]> {
     let arguments = (ins PolyOrContainer:$lhs, PolyOrContainer:$rhs);
     let results = (outs PolyOrContainer:$output);
-    let assemblyFormat = "$lhs `,` $rhs attr-dict `:` `(` type($lhs) `,` type($rhs) `)` `->` type($output)";
+    let assemblyFormat = "$lhs `,` $rhs attr-dict `:` qualified(type($output))";
 
     let hasFolder = 1;
 }
@@ -40,11 +45,13 @@ def Poly_FromTensorOp : Op<Poly_Dialect, "from_tensor"> {
   let hasFolder = 1;
 }
 
-def Poly_EvalOp : Op<Poly_Dialect, "eval"> {
+def Poly_EvalOp : Op<Poly_Dialect, "eval", [AllTypesMatch<["point", "output"]>, Has32BitArguments]> {
   let summary = "Evaluates a Polynomial at a given input value.";
   let arguments = (ins Polynomial:$input, AnyInteger:$point);
   let results = (outs AnyInteger:$output);
-  let assemblyFormat = "$input `,` $point attr-dict `:` `(` type($input) `,` type($point) `)` `->` type($output)";
+  let assemblyFormat = "$input `,` $point attr-dict `:` `(` qualified(type($input)) `,` type($point) `)` `->` type($output)";
+
+  let hasVerifier = 1;
 }
 
 def Poly_ConstantOp : Op<Poly_Dialect, "constant", [Pure, ConstantLike]> {
