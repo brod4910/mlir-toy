@@ -124,6 +124,6 @@ void MulOp::getCanonicalizationPatterns(::mlir::RewritePatternSet &results,
 
 void EvalOp::getCanonicalizationPatterns(::mlir::RewritePatternSet &results,
                                          ::mlir::MLIRContext *context) {
-  populateWithGenerated(results);
+  results.add<LiftConjThroughEval>(context);
 }
 } // namespace mlir::toy::poly
