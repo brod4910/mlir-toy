@@ -1,6 +1,10 @@
 #include "lib/Dialect/Poly/PolyOps.h"
-
 #include "mlir/Dialect/CommonFolders.h"
+#include "mlir/Dialect/Complex/IR/Complex.h"
+#include "mlir/IR/PatternMatch.h"
+
+// Required after PatternMatch.h
+#include "lib/Dialect/Poly/PolyCanonicalize.cpp.inc"
 
 namespace mlir::toy::poly {
 OpFoldResult ConstantOp::fold(ConstantOp::FoldAdaptor adaptor) {
@@ -59,8 +63,67 @@ OpFoldResult FromTensorOp::fold(FromTensorOp::FoldAdaptor adaptor) {
 }
 
 LogicalResult EvalOp::verify() {
-  return getPoint().getType().isSignlessInteger(32)
+  auto pointTy = getPoint().getType();
+  bool idSignlessInteger = pointTy.isSignlessInteger(32);
+  auto complexPt = llvm::dyn_cast<ComplexType>(pointTy);
+
+  return pointTy || complexPt
              ? success()
-             : emitOpError("argument point must be a 32-bit integer");
+             : emitOpError("argument point must be a 32-bit integer "
+                           "integer, or a complex number.");
+}
+
+struct DifferenceOfSquares : public OpRewritePattern<SubOp> {
+  DifferenceOfSquares(mlir::MLIRContext *context)
+      : OpRewritePattern<SubOp>(context, /*benefit=*/1) {}
+
+  LogicalResult matchAndRewrite(SubOp op, PatternRewriter &rewriter) {
+    Value lhs = op->getOperand(0);
+    Value rhs = op->getOperand(1);
+
+    if (!rhs.hasOneUse() || lhs.hasOneUse()) {
+      return failure();
+    }
+
+    auto rhsMul = rhs.getDefiningOp<MulOp>();
+    auto lhsMul = lhs.getDefiningOp<MulOp>();
+
+    if (!rhsMul || !lhsMul) {
+      return failure();
+    }
+
+    bool rhsMulOpsAgree = rhsMul.getLhs() == rhsMul.getRhs();
+    bool lhsMulOpsAgree = lhsMul.getLhs() == lhsMul.getRhs();
+
+    if (!rhsMulOpsAgree || !lhsMulOpsAgree) {
+      return failure();
+    }
+    auto x = lhsMul.getLhs();
+    auto y = rhsMul.getLhs();
+
+    AddOp newAdd = rewriter.create<AddOp>(op.getLoc(), x, y);
+    SubOp newSub = rewriter.create<SubOp>(op.getLoc(), x, y);
+    MulOp newMul = rewriter.create<MulOp>(op.getLoc(), newAdd, newSub);
+
+    rewriter.replaceOp(op, newMul);
+
+    return success();
+  }
+};
+
+void AddOp::getCanonicalizationPatterns(::mlir::RewritePatternSet &results,
+                                        ::mlir::MLIRContext *context) {}
+
+void SubOp::getCanonicalizationPatterns(::mlir::RewritePatternSet &results,
+                                        ::mlir::MLIRContext *context) {
+  results.add<DifferenceOfSquares>(context);
+}
+
+void MulOp::getCanonicalizationPatterns(::mlir::RewritePatternSet &results,
+                                        ::mlir::MLIRContext *context) {}
+
+void EvalOp::getCanonicalizationPatterns(::mlir::RewritePatternSet &results,
+                                         ::mlir::MLIRContext *context) {
+  results.add<LiftConjThroughEval>(context);
 }
 } // namespace mlir::toy::poly
