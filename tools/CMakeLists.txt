@@ -11,7 +11,7 @@ set (LIBS
     MLIRPoly
     MulToAdd
     # NoisyPasses
-    # PolyToStandard
+    PolyToStandard
 )
 
 add_llvm_executable(toy toy.cpp)

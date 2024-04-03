@@ -16,6 +16,7 @@ int main(int argc, char **argv) {
   mlir::toy::registerAffinePasses();
   mlir::toy::registerArithPasses();
 
+  mlir::toy::poly::registerPolyToStandardPasses();
   return mlir::asMainReturnCode(
       mlir::MlirOptMain(argc, argv, "Tutorial Pass Driver", registry));
 }
