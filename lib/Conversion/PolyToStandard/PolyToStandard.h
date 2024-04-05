@@ -7,11 +7,10 @@
 
 namespace mlir::toy::poly {
 #define GEN_PASS_DECL
-#include "lib/Conversion/PolyToStandard/PolyToStandard.inc.h"
+#include "lib/Conversion/PolyToStandard/PolyToStandard.h.inc"
 
 #define GEN_PASS_REGISTRATION
-#include "lib/Conversion/PolyToStandard/PolyToStandard.inc.h"
-
+#include "lib/Conversion/PolyToStandard/PolyToStandard.h.inc"
 } // namespace mlir::toy::poly
 
 #endif // LIB_CONVERSION_POLYTOSTANDARD_POLYTOSTANDARD_H_

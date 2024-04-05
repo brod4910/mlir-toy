@@ -1,7 +1,7 @@
 #ifndef LIB_CONVERSION_POLYTOSTANDARD_POLYTOSTANDARD_TD_
 #define LIB_CONVERSION_POLYTOSTANDARD_POLYTOSTANDARD_TD_
 
-#include "mlir/Pass/PassBase.td"
+include "mlir/Pass/PassBase.td"
 
 def PolyToStandard : Pass<"poly-to-standard"> {
     let summary = "Lower `poly` to standard MLIR dialects";

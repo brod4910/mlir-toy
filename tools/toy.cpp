@@ -1,3 +1,4 @@
+#include "lib/Conversion/PolyToStandard/PolyToStandard.h"
 #include "lib/Dialect/Poly/PolyDialect.h"
 #include "lib/Transform/AffineTD/Passes.h"
 #include "lib/Transform/ArithTD/Passes.h"
