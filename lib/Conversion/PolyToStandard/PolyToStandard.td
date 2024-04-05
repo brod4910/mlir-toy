@@ -14,6 +14,7 @@ def PolyToStandard : Pass<"poly-to-standard"> {
         "mlir::arith::ArithDialect",
         "mlir::toy::poly::PolyDialect",
         "mlir::tensor::TensorDialect",
+         "mlir::scf::SCFDialect",
     ];
 }
 
