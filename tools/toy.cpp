@@ -19,5 +19,5 @@ int main(int argc, char **argv) {
 
   mlir::toy::poly::registerPolyToStandardPasses();
   return mlir::asMainReturnCode(
-      mlir::MlirOptMain(argc, argv, "Tutorial Pass Driver", registry));
+      mlir::MlirOptMain(argc, argv, "Toy Pass Driver", registry));
 }

@@ -48,6 +48,13 @@ def Poly_FromTensorOp : Op<Poly_Dialect, "from_tensor"> {
   let hasFolder = 1;
 }
 
+def Poly_ToTensorOp : Op<Poly_Dialect, "to_tensor", [Pure]> {
+  let summary = "Converts a polynomial to a tensor of its integer coefficients.";
+  let arguments = (ins Polynomial:$input);
+  let results = (outs TensorOf<[AnyInteger]>:$output);
+  let assemblyFormat = "$input attr-dict `:` qualified(type($input)) `->` type($output)";
+}
+
 def Poly_EvalOp : Op<Poly_Dialect, "eval", [AllTypesMatch<["point", "output"]>, Has32BitArguments]> {
   let summary = "Evaluates a Polynomial at a given input value.";
   let arguments = (ins Polynomial:$polynomial, IntOrComplex:$point);

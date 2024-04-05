@@ -19,20 +19,35 @@ public:
     addConversion([](Type type) { return type; });
     addConversion([ctx](PolynomialType type) -> Type {
       int degreeBound = type.getDegreeBound();
-
       IntegerType elementTy =
           IntegerType::get(ctx, 32, IntegerType::SignednessSemantics::Signless);
-
       return RankedTensorType::get({degreeBound}, elementTy);
     });
+
+    // We don't include any custom materialization hooks because this lowering
+    // is all done in a single pass. The dialect conversion framework works by
+    // resolving intermediate (mid-pass) type conflicts by inserting
+    // unrealized_conversion_cast ops, and only converting those to custom
+    // materializations if they persist at the end of the pass. In our case,
+    // we'd only need to use custom materializations if we split this lowering
+    // across multiple passes.
   }
-  // We don't include any custom materialization hooks because this lowering
-  // is all done in a single pass. The dialect conversion framework works by
-  // resolving intermediate (mid-pass) type conflicts by inserting
-  // unrealized_conversion_cast ops, and only converting those to custom
-  // materializations if they persist at the end of the pass. In our case,
-  // we'd only need to use custom materializations if we split this lowering
-  // across multiple passes.
+};
+
+struct ConvertAdd : public OpConversionPattern<AddOp> {
+  ConvertAdd(mlir::MLIRContext *context)
+      : OpConversionPattern<AddOp>(context) {}
+
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(AddOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    arith::AddIOp addOp = rewriter.create<arith::AddIOp>(
+        op.getLoc(), adaptor.getLhs(), adaptor.getRhs());
+    rewriter.replaceOp(op.getOperation(), addOp);
+    return success();
+  }
 };
 
 struct ConvertSub : public OpConversionPattern<SubOp> {
@@ -47,56 +62,6 @@ struct ConvertSub : public OpConversionPattern<SubOp> {
     arith::SubIOp subOp = rewriter.create<arith::SubIOp>(
         op.getLoc(), adaptor.getLhs(), adaptor.getRhs());
     rewriter.replaceOp(op.getOperation(), subOp);
-    return success();
-  }
-};
-
-struct ConvertFromTensor : public OpConversionPattern<FromTensorOp> {
-  ConvertFromTensor(mlir::MLIRContext *context)
-      : OpConversionPattern<FromTensorOp>(context) {}
-
-  using OpConversionPattern::OpConversionPattern;
-
-  LogicalResult
-  matchAndRewrite(FromTensorOp op, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
-    auto resultTensorTy = cast<RankedTensorType>(
-        typeConverter->convertType(op->getResultTypes()[0]));
-    auto resultShape = resultTensorTy.getShape()[0];
-    auto resultEltTy = resultTensorTy.getElementType();
-
-    auto inputTensorTy = op.getInput().getType();
-    auto inputShape = inputTensorTy.getShape()[0];
-
-    // Zero pad the tensor if the coefficients' size is less than the
-    // polynomial degree.
-    ImplicitLocOpBuilder b(op.getLoc(), rewriter);
-    auto coeffValue = adaptor.getInput();
-    if (inputShape < resultShape) {
-      SmallVector<OpFoldResult, 1> low, high;
-      low.push_back(rewriter.getIndexAttr(0));
-      high.push_back(rewriter.getIndexAttr(resultShape - inputShape));
-      coeffValue = b.create<tensor::PadOp>(
-          resultTensorTy, coeffValue, low, high,
-          b.create<arith::ConstantOp>(rewriter.getIntegerAttr(resultEltTy, 0)),
-          /*nofold=*/false);
-    }
-
-    rewriter.replaceOp(op, coeffValue);
-    return success();
-  }
-};
-
-struct ConvertToTensor : public OpConversionPattern<ToTensorOp> {
-  ConvertToTensor(mlir::MLIRContext *context)
-      : OpConversionPattern<ToTensorOp>(context) {}
-
-  using OpConversionPattern::OpConversionPattern;
-
-  LogicalResult
-  matchAndRewrite(ToTensorOp op, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
-    rewriter.replaceOp(op, adaptor.getInput());
     return success();
   }
 };
@@ -164,40 +129,6 @@ struct ConvertMul : public OpConversionPattern<MulOp> {
   }
 };
 
-struct ConvertAdd : public OpConversionPattern<AddOp> {
-  ConvertAdd(mlir::MLIRContext *context)
-      : OpConversionPattern<AddOp>(context) {}
-
-  using OpConversionPattern::OpConversionPattern;
-
-  LogicalResult
-  matchAndRewrite(AddOp op, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
-    arith::AddIOp addOp = rewriter.create<arith::AddIOp>(
-        op.getLoc(), adaptor.getLhs(), adaptor.getRhs());
-    rewriter.replaceOp(op.getOperation(), addOp);
-    return success();
-  }
-};
-
-struct ConvertConstant : public OpConversionPattern<ConstantOp> {
-  ConvertConstant(MLIRContext *context)
-      : OpConversionPattern<ConstantOp>(context) {}
-
-  using OpConversionPattern::OpConversionPattern;
-
-  LogicalResult
-  matchAndRewrite(ConstantOp op, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
-    ImplicitLocOpBuilder b(op.getLoc(), rewriter);
-    auto constOp = b.create<arith::ConstantOp>(adaptor.getCoefficients());
-    auto fromTensorOp =
-        b.create<FromTensorOp>(op.getResult().getType(), constOp);
-    rewriter.replaceOp(op, fromTensorOp.getResult());
-    return success();
-  }
-};
-
 struct ConvertEval : public OpConversionPattern<EvalOp> {
   ConvertEval(mlir::MLIRContext *context)
       : OpConversionPattern<EvalOp>(context) {}
@@ -214,7 +145,9 @@ struct ConvertEval : public OpConversionPattern<EvalOp> {
 
     auto lowerBound =
         b.create<arith::ConstantOp>(b.getIndexType(), b.getIndexAttr(1));
-    auto numTermsOp = b.create<arith::ConstantOp>(b.getIndexType(),
+    auto numTermsOp =
+        b.create<arith::ConstantOp>(b.getIndexType(), b.getIndexAttr(numTerms));
+    auto upperBound = b.create<arith::ConstantOp>(b.getIndexType(),
                                                   b.getIndexAttr(numTerms + 1));
     auto step = lowerBound;
 
@@ -229,7 +162,7 @@ struct ConvertEval : public OpConversionPattern<EvalOp> {
     auto accum =
         b.create<arith::ConstantOp>(b.getI32Type(), b.getI32IntegerAttr(0));
     auto loop = b.create<scf::ForOp>(
-        lowerBound, numTermsOp, step, accum.getResult(),
+        lowerBound, upperBound, step, accum.getResult(),
         [&](OpBuilder &builder, Location loc, Value loopIndex,
             ValueRange loopState) {
           ImplicitLocOpBuilder b(op.getLoc(), builder);
@@ -242,6 +175,74 @@ struct ConvertEval : public OpConversionPattern<EvalOp> {
         });
 
     rewriter.replaceOp(op, loop.getResult(0));
+    return success();
+  }
+};
+
+struct ConvertFromTensor : public OpConversionPattern<FromTensorOp> {
+  ConvertFromTensor(mlir::MLIRContext *context)
+      : OpConversionPattern<FromTensorOp>(context) {}
+
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(FromTensorOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto resultTensorTy = cast<RankedTensorType>(
+        typeConverter->convertType(op->getResultTypes()[0]));
+    auto resultShape = resultTensorTy.getShape()[0];
+    auto resultEltTy = resultTensorTy.getElementType();
+
+    auto inputTensorTy = op.getInput().getType();
+    auto inputShape = inputTensorTy.getShape()[0];
+
+    // Zero pad the tensor if the coefficients' size is less than the polynomial
+    // degree.
+    ImplicitLocOpBuilder b(op.getLoc(), rewriter);
+    auto coeffValue = adaptor.getInput();
+    if (inputShape < resultShape) {
+      SmallVector<OpFoldResult, 1> low, high;
+      low.push_back(rewriter.getIndexAttr(0));
+      high.push_back(rewriter.getIndexAttr(resultShape - inputShape));
+      coeffValue = b.create<tensor::PadOp>(
+          resultTensorTy, coeffValue, low, high,
+          b.create<arith::ConstantOp>(rewriter.getIntegerAttr(resultEltTy, 0)),
+          /*nofold=*/false);
+    }
+
+    rewriter.replaceOp(op, coeffValue);
+    return success();
+  }
+};
+
+struct ConvertToTensor : public OpConversionPattern<ToTensorOp> {
+  ConvertToTensor(mlir::MLIRContext *context)
+      : OpConversionPattern<ToTensorOp>(context) {}
+
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(ToTensorOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    rewriter.replaceOp(op, adaptor.getInput());
+    return success();
+  }
+};
+
+struct ConvertConstant : public OpConversionPattern<ConstantOp> {
+  ConvertConstant(mlir::MLIRContext *context)
+      : OpConversionPattern<ConstantOp>(context) {}
+
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(ConstantOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    ImplicitLocOpBuilder b(op.getLoc(), rewriter);
+    auto constOp = b.create<arith::ConstantOp>(adaptor.getCoefficients());
+    auto fromTensorOp =
+        b.create<FromTensorOp>(op.getResult().getType(), constOp);
+    rewriter.replaceOp(op, fromTensorOp.getResult());
     return success();
   }
 };
@@ -259,8 +260,9 @@ struct PolyToStandard : impl::PolyToStandardBase<PolyToStandard> {
 
     RewritePatternSet patterns(context);
     PolyToStandardTypeConverter typeConverter(context);
-    patterns.add<ConvertAdd, ConvertConstant, ConvertMul, ConvertFromTensor,
-                 ConvertToTensor, ConvertEval>(typeConverter, context);
+    patterns.add<ConvertAdd, ConvertConstant, ConvertSub, ConvertEval,
+                 ConvertMul, ConvertFromTensor, ConvertToTensor>(typeConverter,
+                                                                 context);
 
     populateFunctionOpInterfaceTypeConversionPattern<func::FuncOp>(
         patterns, typeConverter);
@@ -290,5 +292,4 @@ struct PolyToStandard : impl::PolyToStandardBase<PolyToStandard> {
     }
   }
 };
-
 } // namespace mlir::toy::poly
