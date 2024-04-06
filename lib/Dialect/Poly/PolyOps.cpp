@@ -59,64 +59,25 @@ OpFoldResult MulOp::fold(MulOp::FoldAdaptor adaptor) {
 
 OpFoldResult FromTensorOp::fold(FromTensorOp::FoldAdaptor adaptor) {
   // Returns null if the cast failed, which corresponds to a failed fold.
-  return dyn_cast<DenseIntElementsAttr>(adaptor.getInput());
+  return dyn_cast_or_null<DenseIntElementsAttr>(adaptor.getInput());
 }
 
 LogicalResult EvalOp::verify() {
   auto pointTy = getPoint().getType();
-  bool idSignlessInteger = pointTy.isSignlessInteger(32);
+  bool isSignlessInteger = pointTy.isSignlessInteger(32);
   auto complexPt = llvm::dyn_cast<ComplexType>(pointTy);
-
-  return pointTy || complexPt
+  return isSignlessInteger || complexPt
              ? success()
-             : emitOpError("argument point must be a 32-bit integer "
-                           "integer, or a complex number.");
+             : emitOpError("argument point must be a 32-bit "
+                           "integer, or a complex number");
 }
-
-struct DifferenceOfSquares : public OpRewritePattern<SubOp> {
-  DifferenceOfSquares(mlir::MLIRContext *context)
-      : OpRewritePattern<SubOp>(context, /*benefit=*/1) {}
-
-  LogicalResult matchAndRewrite(SubOp op, PatternRewriter &rewriter) {
-    Value lhs = op->getOperand(0);
-    Value rhs = op->getOperand(1);
-
-    if (!rhs.hasOneUse() || lhs.hasOneUse()) {
-      return failure();
-    }
-
-    auto rhsMul = rhs.getDefiningOp<MulOp>();
-    auto lhsMul = lhs.getDefiningOp<MulOp>();
-
-    if (!rhsMul || !lhsMul) {
-      return failure();
-    }
-
-    bool rhsMulOpsAgree = rhsMul.getLhs() == rhsMul.getRhs();
-    bool lhsMulOpsAgree = lhsMul.getLhs() == lhsMul.getRhs();
-
-    if (!rhsMulOpsAgree || !lhsMulOpsAgree) {
-      return failure();
-    }
-    auto x = lhsMul.getLhs();
-    auto y = rhsMul.getLhs();
-
-    AddOp newAdd = rewriter.create<AddOp>(op.getLoc(), x, y);
-    SubOp newSub = rewriter.create<SubOp>(op.getLoc(), x, y);
-    MulOp newMul = rewriter.create<MulOp>(op.getLoc(), newAdd, newSub);
-
-    rewriter.replaceOp(op, newMul);
-
-    return success();
-  }
-};
 
 void AddOp::getCanonicalizationPatterns(::mlir::RewritePatternSet &results,
                                         ::mlir::MLIRContext *context) {}
 
 void SubOp::getCanonicalizationPatterns(::mlir::RewritePatternSet &results,
                                         ::mlir::MLIRContext *context) {
-  results.add<DifferenceOfSquares>(context);
+  results.add<DifferenceOfSquaresTDD>(context);
 }
 
 void MulOp::getCanonicalizationPatterns(::mlir::RewritePatternSet &results,

@@ -5,13 +5,11 @@ set (LIBS
     ${dialect_libs}
     ${conversion_libs}
     AffineFullUnroll
-    # MLIRNoisy
     MLIROptLib
     MLIRPass
     MLIRPoly
     MulToAdd
-    # NoisyPasses
-    # PolyToStandard
+    PolyToStandard
 )
 
 add_llvm_executable(toy toy.cpp)
