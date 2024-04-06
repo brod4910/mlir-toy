@@ -5,12 +5,10 @@ set (LIBS
     ${dialect_libs}
     ${conversion_libs}
     AffineFullUnroll
-    # MLIRNoisy
     MLIROptLib
     MLIRPass
     MLIRPoly
     MulToAdd
-    # NoisyPasses
     PolyToStandard
 )
 
